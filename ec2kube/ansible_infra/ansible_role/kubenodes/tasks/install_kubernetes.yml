@@ -1,0 +1,37 @@
+---
+
+- name: add GPG key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+- name: Add specified repository into sources list
+  apt_repository:
+    repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+    state: present
+- name: Run the equivalent of "apt-get update" as a separate step
+  apt:
+    update_cache: yes
+- name: Install kube and kubectl
+  apt:
+    name: "{{ item }}"
+    state: latest
+    #update_cache: yes
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+- name: swapoff for kubernetes
+  command: swapoff -a
+- name: update docker file system
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+  notify: docker service
+- name: restart docker
+  command: systemctl restart docker
+
+- name: remove containerd config
+  command: rm -f /etc/containerd/config.toml
+
+- name: restart containerd
+  command: systemctl restart containerd

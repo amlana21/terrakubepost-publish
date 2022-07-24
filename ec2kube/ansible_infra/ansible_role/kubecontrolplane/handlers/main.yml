@@ -1,0 +1,7 @@
+---
+# handlers file for kubecontrolplane
+- name: docker service
+  service:
+    name: docker
+    state: restarted
+  listen: docker service

@@ -1,0 +1,9 @@
+---
+- hosts: kubectrl
+  become: yes
+  tasks:
+    - name: test kubectl from controlplane
+      command: kubectl get nodes
+      register: kubectl_output
+    - debug: 
+        var: kubectl_output.stdout_lines

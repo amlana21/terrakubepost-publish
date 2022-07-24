@@ -1,0 +1,39 @@
+---
+
+- name: add GPG key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+- name: Add specified repository into sources list
+  apt_repository:
+    repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+    state: present
+- name: Run the equivalent of "apt-get update" as a separate step
+  apt:
+    update_cache: yes
+- name: Install kube and kubectl
+  apt:
+    name: "{{ item }}"
+    state: latest
+    #update_cache: yes
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+- name: swapoff for kubernetes
+  command: swapoff -a
+
+- name: run kubeadm init
+  command: kubeadm init --pod-network-cidr=10.244.0.0/16
+
+- name: save kubeconfig file
+  command: mkdir -p $HOME/.kube
+
+- name: copy kubeconfig file
+  command: cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+
+- name: change permission for kubeconfig file
+  command: chown $(id -u):$(id -g) $HOME/.kube/config
+
+- name: install network plugin
+  command: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml

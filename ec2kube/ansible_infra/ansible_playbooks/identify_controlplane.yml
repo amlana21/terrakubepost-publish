@@ -1,0 +1,45 @@
+- hosts: localhost
+  gather_facts: yes
+  become: true
+  connection: local
+  tasks:
+    - name: get ec2
+      ec2_instance_facts:
+        aws_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+        aws_secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+        ec2_region: "us-east-1"
+        filters:
+          tag:Name: KubeCtrlPlane
+      register: ec2_facts
+    - debug:
+        var: ec2_facts.instances[0].public_dns_name
+    - name: add ec2 ip to inv file
+      lineinfile:
+        path: ./inv
+        line: "{{ item.public_dns_name }}"
+      loop: "{{ ec2_facts.instances }}"
+    - name: add vars section
+      lineinfile:
+        path: ./inv
+        line: "[kubectrl:vars]"
+    - name: add ansible user line
+      lineinfile:
+        path: ./inv
+        line: "ansible_user=ubuntu"
+    - name: add ansible key line
+      lineinfile:
+        path: ./inv
+        line: "ansible_ssh_private_key_file=/var/lib/jenkins/id_rsa"
+    - name: add ssh args line
+      lineinfile:
+        path: ./inv
+        line: "ansible_ssh_common_args='-o StrictHostKeyChecking=no'"
+    - name: update inv file
+      aws_s3:
+        aws_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+        aws_secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+        ec2_region: "us-east-1"
+        bucket: "{{ lookup('env', 'ANSIBLE_BUCKET_NAME') }}"
+        mode: put
+        object: /inv
+        src: ./inv

@@ -1,0 +1,17 @@
+---
+# tasks file for kubecontrolplane
+
+
+- name: Run the equivalent of "apt-get update" as a separate step
+  apt:
+    update_cache: yes
+- name: Install utils
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - apt-transport-https
+    - software-properties-common
+    - curl
+- include_tasks: install_docker.yml
+- include_tasks: install_kubernetes.yml

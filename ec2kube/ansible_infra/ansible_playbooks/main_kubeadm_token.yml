@@ -1,0 +1,25 @@
+---
+- hosts: kubectrl
+  become: yes
+  tasks:
+    - name: get token
+      command: kubeadm token create --print-join-command
+      register: tokenout
+    - name: create file
+      local_action: copy content="{{tokenout.stdout}}" dest="{{playbook_dir}}/token_cmd.sh"
+
+
+- hosts: localhost
+  gather_facts: no
+  become: true
+  connection: local
+  tasks:
+    - name: update join command file
+      aws_s3:
+        aws_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+        aws_secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+        ec2_region: "us-east-1"
+        bucket: "{{ lookup('env', 'ANSIBLE_BUCKET_NAME') }}"
+        mode: put
+        object: /token_cmd.sh
+        src: ./token_cmd.sh
